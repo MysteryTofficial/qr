@@ -1,4 +1,4 @@
-# 🔳 Advanced QR Code Generator v1.0
+# 🔳 FreeQR QR code generator v1.0
 
 A high-performance, privacy-focused QR Code generator built with vanilla JavaScript. This tool allows for extensive customization of data modules, finder patterns (eyes), gradients, and logo overlays.
 
