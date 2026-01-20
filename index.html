@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator v1.0</title>
+    <link rel="favicon" href="./favicon.ico" type="image/x-icon">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2a2a2a;
+            --border-color: #3a3a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --success: #10b981;
+            --radius: 8px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            flex: 1;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--accent), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle { color: var(--text-secondary); }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 2rem;
+        }
+
+        .panel h2 { margin-bottom: 1.5rem; font-weight: 600; color: var(--text-primary); }
+
+        /* Form Elements */
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; }
+        
+        input[type="text"], input[type="url"], input[type="email"], 
+        input[type="tel"], input[type="number"], input[type="date"], 
+        input[type="time"], input[type="datetime-local"],
+        textarea, select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        /* Color Inputs */
+        .color-input-group { display: flex; align-items: center; gap: 0.75rem; }
+        input[type="color"] {
+            width: 60px; height: 40px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: var(--bg-tertiary);
+            cursor: pointer;
+            padding: 2px;
+        }
+
+        /* Sliders */
+        input[type="range"] {
+            width: 100%; height: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .range-value { float: right; color: var(--text-primary); font-weight: 600; }
+
+        /* Radio Buttons (Custom) */
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.75rem;
+        }
+        .radio-option { position: relative; }
+        .radio-option input { position: absolute; opacity: 0; }
+        .radio-option label {
+            display: block; padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            text-align: center;
+            cursor: pointer;
+            margin: 0;
+            transition: 0.2s;
+        }
+        .radio-option input:checked + label {
+            border-color: var(--accent);
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent);
+        }
+
+        /* Tabs */
+        .tab-group { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); }
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -2px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+
+        /* Preview Area */
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            position: sticky;
+            top: 2rem;
+        }
+        #qrPreview {
+            background: white; /* Always white bg for visibility behind transparent QRs */
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 350px;
+            background-image: linear-gradient(45deg, #eee 25%, transparent 25%), linear-gradient(-45deg, #eee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #eee 75%), linear-gradient(-45deg, transparent 75%, #eee 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        
+        #qrCanvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .button-group { display: flex; gap: 1rem; width: 100%; }
+        button {
+            flex: 1; padding: 1rem;
+            background: var(--accent);
+            color: white; border: none;
+            border-radius: var(--radius);
+            font-weight: 600; cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: var(--accent-hover); }
+
+        .file-input-wrapper { position: relative; margin-bottom: 1rem; }
+        .file-input-wrapper input { position: absolute; left: -9999px; }
+        .file-input-label {
+            display: block; padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius);
+            text-align: center; cursor: pointer;
+        }
+        .file-input-label:hover { border-color: var(--accent); color: var(--accent); }
+
+        .hidden { display: none; }
+        .gradient-preview { height: 40px; border-radius: var(--radius); margin-top: 10px; border: 1px solid var(--border-color); }
+
+        @media (max-width: 900px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            background: var(--bg-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>QR Code Generator</h1>
+            <p class="subtitle">Client-Side Only • No Tracking • Fully Customizable</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="panel">
+                <div class="tab-group">
+                    <button class="tab active" data-tab="content">Content</button>
+                    <button class="tab" data-tab="appearance">Appearance</button>
+                    <button class="tab" data-tab="logo">Logo</button>
+                </div>
+
+                <div class="tab-content active" id="content-tab">
+                    <div class="form-group">
+                        <label for="qrType">Content Type</label>
+                        <select id="qrType">
+                            <option value="url">URL / Website</option>
+                            <option value="text">Plain Text</option>
+                            <option value="email">Email</option>
+                            <option value="phone">Phone</option>
+                            <option value="sms">SMS</option>
+                            <option value="wifi">WiFi Network</option>
+                            <option value="vcard">vCard / Contact</option>
+                            <option value="event">Calendar Event</option>
+                        </select>
+                    </div>
+                    <div id="inputFields">
+                        </div>
+                </div>
+
+                <div class="tab-content" id="appearance-tab">
+                    <div class="form-group">
+                        <label>Output Size: <span class="range-value" id="qrSizeValue">1000px</span></label>
+                        <input type="range" id="qrSize" min="200" max="2000" value="1000" step="100">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Error Correction</label>
+                        <select id="errorCorrection">
+                            <option value="L">Low (7%) - Best for clean look</option>
+                            <option value="M" selected>Medium (15%) - Standard</option>
+                            <option value="Q">Quartile (25%) - Good for logos</option>
+                            <option value="H">High (30%) - Best for complex logos</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Margin: <span class="range-value" id="marginValue">1</span></label>
+                        <input type="range" id="margin" min="0" max="5" value="1" step="1">
+                    </div>
+
+                    <div class="section-divider" style="height:1px; background:var(--border-color); margin: 1.5rem 0;"></div>
+
+                    <div class="form-group">
+                        <label>Dot Style (Data Modules)</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="dotSquare" name="dotStyle" value="square" checked>
+                                <label for="dotSquare">Square</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="dotRounded" name="dotStyle" value="rounded">
+                                <label for="dotRounded">Rounded</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="dotDots" name="dotStyle" value="dots">
+                                <label for="dotDots">Dots</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Corner Style (Finder Patterns)</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="cornerSquare" name="cornerStyle" value="square" checked>
+                                <label for="cornerSquare">Square</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="cornerRounded" name="cornerStyle" value="rounded">
+                                <label for="cornerRounded">Rounded</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="cornerDot" name="cornerStyle" value="dot">
+                                <label for="cornerDot">Dot</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Roundness Tweaker (For 'Square' styles): <span class="range-value" id="dotRoundnessValue">0%</span></label>
+                        <input type="range" id="dotRoundness" min="0" max="50" value="0">
+                    </div>
+
+                    <div class="section-divider" style="height:1px; background:var(--border-color); margin: 1.5rem 0;"></div>
+
+                    <div class="form-group">
+                        <label>Color Style</label>
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" id="colorSolid" name="colorStyle" value="solid" checked>
+                                <label for="colorSolid">Solid</label>
+                            </div>
+                            <div class="radio-option">
+                                <input type="radio" id="colorGradient" name="colorStyle" value="gradient">
+                                <label for="colorGradient">Gradient</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="solidColors">
+                        <div class="input-row">
+                            <div class="form-group">
+                                <label>QR Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="fgColor" value="#000000">
+                                    <input type="text" id="fgColorText" value="#000000">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Background</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="bgColor" value="#ffffff">
+                                    <input type="text" id="bgColorText" value="#ffffff">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="gradientColors" class="hidden">
+                        <div class="input-row">
+                            <div class="form-group">
+                                <label>Start Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="gradientStart" value="#6366f1">
+                                    <input type="text" id="gradientStartText" value="#6366f1">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>End Color</label>
+                                <div class="color-input-group">
+                                    <input type="color" id="gradientEnd" value="#8b5cf6">
+                                    <input type="text" id="gradientEndText" value="#8b5cf6">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="gradient-preview" id="gradientPreview"></div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <input type="checkbox" id="transparentBg">
+                        <label for="transparentBg" style="display:inline; margin-left: 0.5rem;">Transparent Background</label>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="logo-tab">
+                    <div class="form-group">
+                        <div class="file-input-wrapper">
+                            <input type="file" id="logoUpload" accept="image/*">
+                            <label for="logoUpload" class="file-input-label" id="logoLabel">
+                                📂 Click to Upload Logo
+                            </label>
+                        </div>
+                        <div id="logoPreviewContainer" style="text-align: center;"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Logo Size: <span class="range-value" id="logoSizeValue">20%</span></label>
+                        <input type="range" id="logoSize" min="10" max="40" value="20">
+                    </div>
+
+<div class="form-group">
+    <label>Logo Background/Padding</label>
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem;">
+        <input type="checkbox" id="logoRounded" checked style="width: auto; margin: 0;">
+        <label for="logoRounded" style="display: inline; margin: 0;">Circular Logo</label>
+    </div>
+    
+    <div class="color-input-group">
+        <input type="color" id="logoBgColor" value="#ffffff">
+        <label>Background Color</label>
+    </div>
+</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Live Preview</h2>
+                <div class="preview-container">
+                    <div id="qrPreview">
+                        <canvas id="qrCanvas"></canvas>
+                    </div>
+                    <div class="button-group">
+                        <button id="downloadPNG">Download PNG</button>
+                    </div>
+                    <p style="font-size:0.8rem; color: var(--text-secondary);">
+                        Note: The preview is scaled down. The download will be high resolution.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>v1.0.0 • Made By MysteryT</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        // --- Templates for Inputs ---
+        const templates = {
+            url: `<div class="form-group"><label>Website URL</label><input type="url" id="val1" placeholder="https://example.com" value="https://example.com"></div>`,
+            text: `<div class="form-group"><label>Plain Text</label><textarea id="val1" placeholder="Type something...">Hello World</textarea></div>`,
+            email: `<div class="form-group"><label>Email</label><input type="email" id="val1" placeholder="me@example.com"></div><div class="form-group"><label>Subject</label><input type="text" id="val2" placeholder="Hello"></div><div class="form-group"><label>Message</label><textarea id="val3"></textarea></div>`,
+            phone: `<div class="form-group"><label>Phone Number</label><input type="tel" id="val1" placeholder="+1 234 567 890"></div>`,
+            sms: `<div class="form-group"><label>Phone Number</label><input type="tel" id="val1" placeholder="+1 234 567 890"></div><div class="form-group"><label>Message</label><textarea id="val2"></textarea></div>`,
+            wifi: `<div class="form-group"><label>Network Name (SSID)</label><input type="text" id="val1"></div><div class="form-group"><label>Password</label><input type="text" id="val2"></div><div class="form-group"><label>Security</label><select id="val3"><option value="WPA">WPA/WPA2</option><option value="WEP">WEP</option><option value="nopass">None</option></select></div>`,
+            vcard: `<div class="input-row"><div class="form-group"><label>First Name</label><input type="text" id="val1"></div><div class="form-group"><label>Last Name</label><input type="text" id="val2"></div></div><div class="form-group"><label>Phone</label><input type="tel" id="val3"></div><div class="form-group"><label>Email</label><input type="email" id="val4"></div>`,
+            event: `<div class="form-group"><label>Event Title</label><input type="text" id="val1"></div><div class="form-group"><label>Location</label><input type="text" id="val2"></div>`
+        };
+
+        // --- State & Init ---
+        const state = {
+            type: 'url',
+            size: 1000,
+            margin: 1,
+            ec: 'M',
+            dotStyle: 'square',
+            cornerStyle: 'square',
+            roundness: 0,
+            colorStyle: 'solid',
+            fg: '#000000',
+            bg: '#ffffff',
+            gradStart: '#6366f1',
+            gradEnd: '#8b5cf6',
+            transparent: false,
+            logo: null,
+            logoSize: 20,
+            logoRounded: true,
+            logoBg: '#ffffff'
+        };
+
+        let qrObj = null;
+        let logoImgObj = null;
+
+        function init() {
+            // Render initial input fields
+            document.getElementById('inputFields').innerHTML = templates.url;
+            
+            // Setup Listeners
+            setupListeners();
+            updateGradientPreview();
+            
+            // Initial Draw
+            setTimeout(generateQR, 100);
+        }
+
+        function setupListeners() {
+            // QR Type Switcher
+            document.getElementById('qrType').addEventListener('change', (e) => {
+                state.type = e.target.value;
+                document.getElementById('inputFields').innerHTML = templates[state.type];
+                generateQR();
+            });
+
+            // Tabs
+            document.querySelectorAll('.tab').forEach(t => {
+                t.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+                    t.classList.add('active');
+                    document.getElementById(t.dataset.tab + '-tab').classList.add('active');
+                });
+            });
+
+            // Simple Inputs (Sliders/Selects)
+            const mapIdToState = {
+                'qrSize': 'size', 'margin': 'margin', 'errorCorrection': 'ec',
+                'dotRoundness': 'roundness', 'logoSize': 'logoSize', 'logoBgColor': 'logoBg'
+            };
+
+            for (let [id, key] of Object.entries(mapIdToState)) {
+                const el = document.getElementById(id);
+                el.addEventListener('input', (e) => {
+                    state[key] = e.target.value;
+                    const disp = document.getElementById(id + 'Value');
+                    if (disp) disp.textContent = e.target.value + (id === 'qrSize' ? 'px' : (id === 'margin' ? '' : '%'));
+                    generateQR(); // Redraw on change
+                });
+            }
+
+            // Radio Groups
+            document.querySelectorAll('input[type=radio]').forEach(r => {
+                r.addEventListener('change', (e) => {
+                    if (e.target.name === 'colorStyle') {
+                        state.colorStyle = e.target.value;
+                        document.getElementById('solidColors').classList.toggle('hidden', state.colorStyle !== 'solid');
+                        document.getElementById('gradientColors').classList.toggle('hidden', state.colorStyle !== 'gradient');
+                    } else {
+                        state[e.target.name] = e.target.value;
+                    }
+                    generateQR();
+                });
+            });
+
+            // Checkboxes
+            document.getElementById('transparentBg').addEventListener('change', (e) => {
+                state.transparent = e.target.checked;
+                generateQR();
+            });
+            document.getElementById('logoRounded').addEventListener('change', (e) => {
+                state.logoRounded = e.target.checked;
+                generateQR();
+            });
+
+            // Colors
+            const colorBind = (id, key) => {
+                const picker = document.getElementById(id);
+                const text = document.getElementById(id + 'Text');
+                picker.addEventListener('input', (e) => {
+                    text.value = e.target.value;
+                    state[key] = e.target.value;
+                    if (key.includes('grad')) updateGradientPreview();
+                    generateQR();
+                });
+                text.addEventListener('input', (e) => {
+                    picker.value = e.target.value;
+                    state[key] = e.target.value;
+                    generateQR();
+                });
+            };
+            colorBind('fgColor', 'fg');
+            colorBind('bgColor', 'bg');
+            colorBind('gradientStart', 'gradStart');
+            colorBind('gradientEnd', 'gradEnd');
+
+            // Logo Upload
+            document.getElementById('logoUpload').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        logoImgObj = new Image();
+                        logoImgObj.onload = generateQR;
+                        logoImgObj.src = evt.target.result;
+                        document.getElementById('logoLabel').textContent = file.name;
+                        document.getElementById('logoPreviewContainer').innerHTML = `<img src="${evt.target.result}" style="max-height:60px; border:1px solid #ccc; border-radius:4px;">`;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Inputs Delegate
+            document.getElementById('inputFields').addEventListener('input', generateQR);
+
+            // Download
+            document.getElementById('downloadPNG').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = `QR-${Date.now()}.png`;
+                link.href = document.getElementById('qrCanvas').toDataURL();
+                link.click();
+            });
+        }
+
+        function updateGradientPreview() {
+            document.getElementById('gradientPreview').style.background = `linear-gradient(90deg, ${state.gradStart}, ${state.gradEnd})`;
+        }
+
+        // --- Data String Builder ---
+        function getData() {
+            const v = (n) => {
+                const el = document.getElementById('val' + n);
+                return el ? el.value : '';
+            }
+            
+            switch (state.type) {
+                case 'url': return v(1) || 'https://example.com';
+                case 'text': return v(1) || ' ';
+                case 'email': return `mailto:${v(1)}?subject=${v(2)}&body=${v(3)}`;
+                case 'phone': return `tel:${v(1)}`;
+                case 'sms': return `smsto:${v(1)}:${v(2)}`;
+                case 'wifi': return `WIFI:S:${v(1)};T:${v(3)};P:${v(2)};;`;
+                case 'vcard': return `BEGIN:VCARD\nVERSION:3.0\nN:${v(2)};${v(1)}\nFN:${v(1)} ${v(2)}\nTEL:${v(3)}\nEMAIL:${v(4)}\nEND:VCARD`;
+                case 'event': return `BEGIN:VEVENT\nSUMMARY:${v(1)}\nLOCATION:${v(2)}\nEND:VEVENT`;
+            }
+            return 'Error';
+        }
+
+        // --- Main Rendering Logic ---
+        function generateQR() {
+            const text = getData();
+            
+            // 1. Generate Matrix
+            const tempDiv = document.createElement('div');
+            qrObj = new QRCode(tempDiv, {
+                text: text,
+                correctLevel: QRCode.CorrectLevel[state.ec]
+            });
+
+            // Wait for library to generate matrix
+            setTimeout(() => {
+                if(qrObj && qrObj._oQRCode && qrObj._oQRCode.modules) {
+                    drawCanvas(qrObj._oQRCode);
+                }
+            }, 10);
+        }
+
+        function drawCanvas(qrCode) {
+            const canvas = document.getElementById('qrCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            const count = qrCode.moduleCount;
+            const size = parseInt(state.size); // The actual resolution
+            const margin = parseInt(state.margin);
+            
+            // Calculate Cell Size
+            // We create a "virtual" margin by simply not drawing in the outer cells if we wanted, 
+            // but standard is adding padding.
+            // Let's add padding:
+            const totalModules = count + (margin * 2);
+            const cellSize = size / totalModules;
+            
+            // Reset Canvas
+            canvas.width = size;
+            canvas.height = size;
+
+            // Background
+            if (!state.transparent) {
+                ctx.fillStyle = state.bg;
+                ctx.fillRect(0, 0, size, size);
+            } else {
+                ctx.clearRect(0, 0, size, size);
+            }
+
+            // Prepare Fill Style
+            let fill;
+            if (state.colorStyle === 'gradient') {
+                const grad = ctx.createLinearGradient(0, 0, size, size);
+                grad.addColorStop(0, state.gradStart);
+                grad.addColorStop(1, state.gradEnd);
+                fill = grad;
+            } else {
+                fill = state.fg;
+            }
+            ctx.fillStyle = fill;
+
+            // Draw Modules
+            for (let r = 0; r < count; r++) {
+                for (let c = 0; c < count; c++) {
+                    if (qrCode.modules[r][c]) {
+                        // Coordinates (account for margin)
+                        const x = (c + margin) * cellSize;
+                        const y = (r + margin) * cellSize;
+                        const w = cellSize; // Width
+                        const h = cellSize; // Height
+
+                        // Check if this module is part of the "Finder Patterns" (Big Eyes)
+                        // Finders are 7x7 in top-left, top-right, bottom-left
+                        const isFinder = (r < 7 && c < 7) || 
+                                         (r < 7 && c >= count - 7) || 
+                                         (r >= count - 7 && c < 7);
+
+                        const currentStyle = isFinder ? state.cornerStyle : state.dotStyle;
+
+                        ctx.beginPath();
+                        
+                        // DRAWING LOGIC
+                        if (currentStyle === 'dots') {
+                            // Circle
+                            const cx = x + w/2;
+                            const cy = y + h/2;
+                            ctx.arc(cx, cy, (w/2) * 0.9, 0, Math.PI * 2);
+                        } 
+                        else if (currentStyle === 'rounded') {
+                            // Heavy Rounding
+                            drawRoundedRect(ctx, x, y, w, h, w * 0.4); // 40% radius
+                        } 
+                        else if (currentStyle === 'dot') {
+                             // "Dot" style for corners (Square inside circle concept)
+                             const cx = x + w/2;
+                             const cy = y + h/2;
+                             ctx.arc(cx, cy, (w/2), 0, Math.PI * 2);
+                        }
+                        else {
+                            // Square with optional roundness slider
+                            const radius = (state.roundness / 100) * (w/2);
+                            drawRoundedRect(ctx, x, y, w, h + 0.5, radius); // +0.5 fixes sub-pixel gaps
+                        }
+                        
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // Draw Logo
+            if (logoImgObj && document.getElementById('logoUpload').value) {
+                const logoPct = parseInt(state.logoSize) / 100;
+                const logoW = size * logoPct;
+                const logoH = logoW; // Assume square aspect for safety or calc based on img
+                const logoX = (size - logoW) / 2;
+                const logoY = (size - logoH) / 2;
+
+                // Logo Background
+                ctx.fillStyle = state.logoBg;
+                ctx.beginPath();
+                if (state.logoRounded) {
+                    ctx.arc(size/2, size/2, (logoW/2) + 2, 0, Math.PI * 2);
+                } else {
+                    ctx.rect(logoX - 2, logoY - 2, logoW + 4, logoH + 4);
+                }
+                ctx.fill();
+
+                // Logo Image
+                ctx.save();
+                ctx.beginPath();
+                if (state.logoRounded) {
+                    ctx.arc(size/2, size/2, logoW/2, 0, Math.PI * 2);
+                    ctx.clip();
+                }
+                ctx.drawImage(logoImgObj, logoX, logoY, logoW, logoH);
+                ctx.restore();
+            }
+        }
+
+        // Robust RoundRect Helper
+        function drawRoundedRect(ctx, x, y, w, h, r) {
+            if (r < 0.1) {
+                ctx.rect(x, y, w, h);
+                return;
+            }
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
